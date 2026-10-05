@@ -3,7 +3,7 @@
  * Plugin Name:       Nfinite Creators
  * Plugin URI:        https://sitesbyyogi.com/
  * Description:       Creator profiles, frontend profile management, portfolios, audio playlists, and Creator Kits/EPKs for the WPNfinite ecosystem.
- * Version:           0.3.0
+ * Version:           0.58.15
  * Author:            SitesByYogi
  * Author URI:        https://sitesbyyogi.com/
  * License:           GPL-2.0+
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NFINITE_CREATORS_VERSION', '0.3.0' );
+define( 'NFINITE_CREATORS_VERSION', '0.58.15' );
 define( 'NFINITE_CREATORS_FILE', __FILE__ );
 define( 'NFINITE_CREATORS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NFINITE_CREATORS_URL', plugin_dir_url( __FILE__ ) );

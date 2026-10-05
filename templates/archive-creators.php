@@ -4,6 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 get_header();
 
 $current_term = is_tax( 'nfinite_creator_type' ) ? get_queried_object() : null;
+$requested_type = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$archive_default_artist = ! $current_term && 'all' !== $requested_type;
+$artist_term = $archive_default_artist ? get_term_by( 'slug', $requested_type ? $requested_type : 'artist', 'nfinite_creator_type' ) : null;
+$active_term_id = $current_term && ! is_wp_error( $current_term ) ? (int) $current_term->term_id : ( $artist_term && ! is_wp_error( $artist_term ) ? (int) $artist_term->term_id : 0 );
 ?>
 <main class="nfinite-creators-archive">
 	<div class="nfinite-creator-shell">
@@ -24,9 +28,9 @@ $current_term = is_tax( 'nfinite_creator_type' ) ? get_queried_object() : null;
 		if ( ! is_wp_error( $types ) && $types ) :
 		?>
 			<nav class="nfinite-creator-filters" aria-label="<?php esc_attr_e( 'Creator types', 'nfinite-creators' ); ?>">
-				<a class="<?php echo $current_term ? '' : 'is-active'; ?>" href="<?php echo esc_url( get_post_type_archive_link( 'nfinite_creator' ) ); ?>"><?php esc_html_e( 'All', 'nfinite-creators' ); ?></a>
+				<a class="<?php echo ( ! $current_term && 'all' === $requested_type ) ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( 'type', 'all', get_post_type_archive_link( 'nfinite_creator' ) ) ); ?>"><?php esc_html_e( 'All', 'nfinite-creators' ); ?></a>
 				<?php foreach ( $types as $type ) : ?>
-					<a class="<?php echo $current_term && (int) $current_term->term_id === (int) $type->term_id ? 'is-active' : ''; ?>" href="<?php echo esc_url( get_term_link( $type ) ); ?>"><?php echo esc_html( $type->name ); ?></a>
+					<a class="<?php echo $active_term_id === (int) $type->term_id ? 'is-active' : ''; ?>" href="<?php echo esc_url( 'artist' === $type->slug ? get_post_type_archive_link( 'nfinite_creator' ) : get_term_link( $type ) ); ?>"><?php echo esc_html( $type->name ); ?></a>
 				<?php endforeach; ?>
 			</nav>
 		<?php endif; ?>

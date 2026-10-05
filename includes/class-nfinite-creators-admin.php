@@ -11,7 +11,7 @@ class Nfinite_Creators_Admin {
 	public static function assets( $hook ) {
 		$screen = get_current_screen();
 
-		if ( ! $screen || 'nfinite_creator' !== $screen->post_type ) {
+		if ( ! $screen || ! in_array( $screen->post_type, array( 'nfinite_creator', 'nfinite_release', 'nfinite_track' ), true ) ) {
 			return;
 		}
 
@@ -45,6 +45,11 @@ class Nfinite_Creators_Admin {
 				'untitledTrack' => __( 'Untitled Track', 'nfinite-creators' ),
 				'videoLabel'    => __( 'Video', 'nfinite-creators' ),
 				'featuredVideo' => __( 'Featured Video', 'nfinite-creators' ),
+                'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+                'archiveNonce'  => wp_create_nonce( 'nfinite_archive_item' ),
+                'archiveLoading'=> __( 'Reading Internet Archive metadata…', 'nfinite-creators' ),
+                'archiveImport' => __( 'Import / Refresh Archive Data', 'nfinite-creators' ),
+                'archiveError'  => __( 'Could not import that Internet Archive item.', 'nfinite-creators' ),
 			)
 		);
 	}

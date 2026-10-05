@@ -33,3 +33,48 @@ body.post-type-nfinite_creator #poststuff{max-width:1500px}
 .nfinite-admin-video-builder{margin:0}
 .nfinite-admin-video-list{display:grid;gap:12px}
 .nfinite-admin-video .nfinite-admin-section__number{font-size:12px}
+
+.nfinite-release-track-manager>.nfinite-admin-actions{margin-bottom:10px}
+.nfinite-release-track-manager select{min-width:260px}
+.nfinite-release-track-sortable{display:grid;gap:8px;margin-top:14px}
+.nfinite-release-track-admin-row{display:grid;grid-template-columns:28px minmax(180px,1fr) minmax(120px,.7fr) auto auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid #dcdcde;border-radius:9px;background:#fff}
+.nfinite-release-track-admin-row__handle{cursor:move;color:#8c8f94}
+.nfinite-release-track-admin-row__meta{color:#646970;font-size:12px}
+@media(max-width:900px){.nfinite-release-track-admin-row{grid-template-columns:28px 1fr auto}.nfinite-release-track-admin-row__meta{grid-column:2}.nfinite-release-track-admin-row>a{grid-column:2}.nfinite-release-track-admin-row>button{grid-column:3;grid-row:1}}
+
+/* 0.4.1 Release Workspace */
+.nfinite-release-track-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:4px 0 12px}
+.nfinite-release-track-toolbar__existing{display:flex;gap:7px;align-items:center}
+.nfinite-release-track-toolbar__existing select{min-width:260px}
+.nfinite-release-track-sortable{display:grid;gap:9px;margin-top:16px}
+.nfinite-release-track-admin-row{display:block;padding:0;border:1px solid #dcdcde;border-radius:11px;background:#fff;overflow:hidden}
+.nfinite-release-track-admin-row__summary{display:grid;grid-template-columns:28px 34px minmax(180px,1fr) auto auto auto;gap:10px;align-items:center;padding:12px 13px}
+.nfinite-release-track-admin-row__handle{cursor:move;color:#8c8f94}
+.nfinite-release-track-admin-row__number{display:flex;width:28px;height:28px;align-items:center;justify-content:center;border-radius:50%;background:#f0f0f1;color:#50575e;font-weight:700;font-size:12px}
+.nfinite-release-track-admin-row__main{display:flex;flex-direction:column;min-width:0}
+.nfinite-release-track-admin-row__main strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nfinite-release-track-admin-row__main span{margin-top:2px;color:#646970;font-size:12px}
+.nfinite-release-track-admin-row__details{padding:14px;border-top:1px solid #e5e5e5;background:#f8f9fa}
+.nfinite-release-track-admin-row__badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:#e7f5ff;color:#0073aa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.nfinite-release-track-admin-row.is-new{border-color:#72aee6}
+.nfinite-release-track-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;margin-top:14px;padding:26px;border:2px dashed #c3c4c7;border-radius:12px;background:#f6f7f7;color:#646970;text-align:center}
+.nfinite-release-track-empty.is-hidden{display:none}
+.nfinite-release-track-empty .dashicons{width:40px;height:40px;font-size:40px;color:#8c8f94}
+.nfinite-release-track-empty strong{margin-top:8px;color:#1d2327;font-size:15px}
+.nfinite-release-track-empty p{margin:5px 0 0}
+.nfinite-release-track-placeholder{min-height:60px;border:2px dashed #72aee6;border-radius:11px;background:#f0f6fc}
+@media(max-width:900px){
+	.nfinite-release-track-admin-row__summary{grid-template-columns:28px 34px 1fr auto}
+	.nfinite-release-track-admin-row__summary>.button-link-delete{grid-column:4}
+	.nfinite-release-track-toolbar__existing{width:100%}
+	.nfinite-release-track-toolbar__existing select{flex:1;min-width:0}
+}
+
+
+/* 0.5.0 — admin-only profile discovery controls */
+.nfinite-admin-section--discovery select[multiple]{min-height:190px;padding:6px}
+.nfinite-admin-section--discovery select[multiple] option{padding:7px 8px}
+.nfinite-admin-callout{margin-top:18px;padding:14px 16px;border-left:4px solid #38bdf8;background:#f0f8ff}
+.nfinite-admin-callout strong{display:block;margin-bottom:4px}
+.nfinite-admin-callout p{margin:0;color:#50575e}
+

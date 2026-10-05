@@ -4,6 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class Nfinite_Creators_CPT {
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register' ) );
+		add_action( 'pre_get_posts', array( __CLASS__, 'default_creator_archive_to_artists' ) );
 	}
 
 	public static function register() {
@@ -55,6 +56,10 @@ class Nfinite_Creators_CPT {
 			'Videographer',
 			'DJ',
 			'Songwriter',
+			'Writer',
+			'Blogger',
+			'Podcaster',
+			'Streamer',
 		);
 
 		foreach ( $defaults as $term ) {
@@ -62,6 +67,44 @@ class Nfinite_Creators_CPT {
 				wp_insert_term( $term, 'nfinite_creator_type' );
 			}
 		}
+	}
+
+	/**
+	 * Make the Artist view the default state of /creators/ while preserving
+	 * an explicit All view at /creators/?type=all.
+	 */
+	public static function default_creator_archive_to_artists( $query ) {
+		if ( is_admin() || ! $query->is_main_query() || ! $query->is_post_type_archive( 'nfinite_creator' ) ) {
+			return;
+		}
+
+		$requested_type = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		// Keep the public creator directory in a balanced 3/4-column grid by
+		// showing 12 creator profiles per archive page.
+		$query->set( 'posts_per_page', 12 );
+		if ( 'all' === $requested_type ) {
+			return;
+		}
+
+		// The bare /creators/ archive should open on Artists. A future explicit
+		// type query remains available without changing the canonical archive URL.
+		$slug = $requested_type ? $requested_type : 'artist';
+		$term = get_term_by( 'slug', $slug, 'nfinite_creator_type' );
+		if ( ! $term || is_wp_error( $term ) ) {
+			return;
+		}
+
+		$query->set(
+			'tax_query',
+			array(
+				array(
+					'taxonomy' => 'nfinite_creator_type',
+					'field'    => 'term_id',
+					'terms'    => array( (int) $term->term_id ),
+				),
+			)
+		);
 	}
 
 	public static function columns( $columns ) {

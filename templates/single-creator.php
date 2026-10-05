@@ -25,8 +25,7 @@ while ( have_posts() ) :
 		$gallery_ids = array();
 	}
 
-	$terms = get_the_terms( $creator_id, 'nfinite_creator_type' );
-	$types = $terms && ! is_wp_error( $terms ) ? implode( ' • ', wp_list_pluck( $terms, 'name' ) ) : __( 'Creator', 'nfinite-creators' );
+	$types = Nfinite_Creators_Profile::creator_type_label( $creator_id );
 
 	$links = array(
 		'Website'    => get_post_meta( $creator_id, '_nfinite_creator_website', true ),
@@ -53,7 +52,10 @@ while ( have_posts() ) :
 
 				<div class="nfinite-creator-hero__copy">
 					<span class="nfinite-eyebrow"><?php echo esc_html( $types ); ?></span>
-					<h1><?php the_title(); ?></h1>
+					<div class="nfinite-creator-title-row">
+						<h1><?php the_title(); ?></h1>
+						<?php if ( class_exists( 'Nfinite_Creators_Identity' ) ) { echo Nfinite_Creators_Identity::render_badge( $creator_id ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					</div>
 					<?php if ( $tagline ) : ?><p class="nfinite-creator-tagline"><?php echo esc_html( $tagline ); ?></p><?php endif; ?>
 					<?php if ( $location ) : ?><p class="nfinite-creator-location"><?php echo esc_html( $location ); ?></p><?php endif; ?>
 
@@ -63,21 +65,52 @@ while ( have_posts() ) :
 						<?php endforeach; ?>
 						<?php if ( $email ) : ?><a href="mailto:<?php echo esc_attr( antispambot( $email ) ); ?>"><?php esc_html_e( 'Contact', 'nfinite-creators' ); ?></a><?php endif; ?>
 					</div>
+
+					<?php
+					$is_claimable = class_exists( 'Nfinite_Creators_Identity' ) && ! Nfinite_Creators_Identity::is_publisher( $creator_id ) && ! Nfinite_Creators_Identity::is_claimed( $creator_id );
+					if ( $is_claimable ) :
+						$claim_url = add_query_arg(
+							array(
+								'claim'        => $creator_id,
+								'creator_name' => get_the_title(),
+								'creator_url'  => get_permalink( $creator_id ),
+							),
+							'https://ci.pairofdice.media/'
+						);
+					?>
+						<div class="nfinite-creator-claim">
+							<div class="nfinite-creator-claim__copy">
+								<strong><?php esc_html_e( 'Is this your profile?', 'nfinite-creators' ); ?></strong>
+								<span><?php esc_html_e( 'Claim it with Creator Intelligence to manage your PairOfDice presence and unlock creator insights.', 'nfinite-creators' ); ?></span>
+							</div>
+							<a class="nfinite-creator-claim__button" href="<?php echo esc_url( $claim_url ); ?>"><?php esc_html_e( 'Claim this profile', 'nfinite-creators' ); ?><span aria-hidden="true"> →</span></a>
+						</div>
+					<?php endif; ?>
 				</div>
 			</div>
 		</section>
 
 		<div class="nfinite-creator-shell nfinite-creator-content">
-			<section class="nfinite-creator-section">
-				<span class="nfinite-eyebrow"><?php esc_html_e( 'About', 'nfinite-creators' ); ?></span>
-				<h2><?php esc_html_e( 'Bio', 'nfinite-creators' ); ?></h2>
-				<div class="nfinite-creator-prose"><?php the_content(); ?></div>
-			</section>
+			<?php if ( class_exists( 'Nfinite_Creators_Publishing' ) ) { Nfinite_Creators_Publishing::render_profile_modules( $creator_id ); } ?>
 
 			<?php
-			$player = Nfinite_Creators_Audio::render_player( $creator_id, __( 'Featured Audio', 'nfinite-creators' ) );
-			if ( $player ) {
-				echo $player; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			/*
+			 * Release-based Discography and profile-level Featured Audio are
+			 * additive. A formal release should never remove demos, beats,
+			 * featured songs, or other creator audio from the profile.
+			 */
+			$profile_audio = Nfinite_Creators_Audio::render_player(
+				$creator_id,
+				__( 'Featured Audio', 'nfinite-creators' )
+			);
+
+			if ( $profile_audio ) {
+				echo '<div class="nfinite-creator-featured-audio">' . $profile_audio . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			}
+
+			$discography = Nfinite_Creators_Music_Player::render_discography( $creator_id );
+			if ( $discography ) {
+				echo $discography; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 			?>
 
@@ -87,6 +120,19 @@ while ( have_posts() ) :
 				echo $videos_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 			?>
+
+			<?php if ( trim( (string) get_the_content() ) ) : ?>
+				<details class="nfinite-creator-section nfinite-creator-bio nfinite-creator-bio--lower">
+					<summary class="nfinite-creator-bio__summary">
+						<span>
+							<span class="nfinite-eyebrow"><?php esc_html_e( 'About', 'nfinite-creators' ); ?></span>
+							<strong><?php printf( esc_html__( 'About %s', 'nfinite-creators' ), esc_html( get_the_title() ) ); ?></strong>
+						</span>
+						<span class="nfinite-creator-bio__toggle" aria-hidden="true"></span>
+					</summary>
+					<div class="nfinite-creator-prose nfinite-creator-bio__content"><?php the_content(); ?></div>
+				</details>
+			<?php endif; ?>
 
 			<?php if ( ! empty( $gallery_ids ) ) : ?>
 				<section class="nfinite-creator-section nfinite-creator-gallery-section">
@@ -148,6 +194,29 @@ while ( have_posts() ) :
 						<?php if ( $press_download ) : ?>
 							<a class="nfinite-btn nfinite-btn-secondary" href="<?php echo esc_url( $press_download ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Download Press Kit', 'nfinite-creators' ); ?></a>
 						<?php endif; ?>
+					</div>
+				</section>
+			<?php endif; ?>
+
+			<?php
+			$related_creator_ids = Nfinite_Creators_Profile::related_creators( $creator_id );
+			if ( $related_creator_ids ) :
+			?>
+				<section class="nfinite-creator-related" aria-labelledby="nfinite-related-creators-title">
+					<header class="nfinite-creator-related__head">
+						<div>
+							<span class="nfinite-eyebrow"><?php esc_html_e( 'Discover', 'nfinite-creators' ); ?></span>
+							<h2 id="nfinite-related-creators-title"><?php esc_html_e( 'Similar Creators', 'nfinite-creators' ); ?></h2>
+						</div>
+						<a class="nfinite-creator-related__all" href="<?php echo esc_url( get_post_type_archive_link( 'nfinite_creator' ) ); ?>">
+							<?php esc_html_e( 'View all creators', 'nfinite-creators' ); ?> →
+						</a>
+					</header>
+
+					<div class="nfinite-creators-grid nfinite-creators-grid--related">
+						<?php foreach ( $related_creator_ids as $related_creator_id ) : ?>
+							<?php echo Nfinite_Creators_Frontend::creator_card( $related_creator_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<?php endforeach; ?>
 					</div>
 				</section>
 			<?php endif; ?>
