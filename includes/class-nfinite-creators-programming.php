@@ -167,7 +167,12 @@ final class Nfinite_Creators_Programming {
         if ( ! is_array( $input ) ) { wp_die( 'Invalid selections. No changes were saved.' ); }
         $mode = sanitize_key( $_POST['mode'] ?? '' );
         $rule = array( 'mode' => in_array( $mode, array( 'automatic', 'handpicked', 'mixed' ), true ) ? $mode : 'automatic', 'picks' => self::ids( $input['picks'] ?? array(), $surface ), 'exclude' => self::ids( $input['exclude'] ?? array(), $surface ), 'artist_cap' => min( 50, absint( $_POST['artist_cap'] ?? 0 ) ), 'release_cap' => min( 50, absint( $_POST['release_cap'] ?? 0 ) ), 'override' => ! empty( $_POST['override'] ) );
-        $all = get_option( self::OPTION, array() ); $all[$surface] = $rule;
+        $all = get_option( self::OPTION, array() );
+        if ( 'radio' === $surface && isset( $all['radio'] ) && is_array( $all['radio'] ) ) {
+            $rule['rotation'] = $all['radio']['rotation'] ?? array();
+            $rule['weights'] = $all['radio']['weights'] ?? array();
+        }
+        $all[$surface] = $rule;
         update_option( self::OPTION, $all, false );
         wp_safe_redirect( add_query_arg( array( 'page' => 'nfinite-programming', 'surface' => $surface, 'saved' => 1 ), admin_url( 'admin.php' ) ) ); exit;
     }
