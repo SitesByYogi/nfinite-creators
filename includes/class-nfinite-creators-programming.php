@@ -14,7 +14,7 @@ final class Nfinite_Creators_Programming {
     }
     public static function rule( $surface ) {
         $all = get_option( self::OPTION, array() );
-        return array_merge( array( 'mode' => 'automatic', 'picks' => array(), 'exclude' => array(), 'artist_cap' => 'latest_tracks' === $surface ? 2 : 0, 'release_cap' => 'latest_tracks' === $surface ? 1 : 0, 'override' => false ), isset( $all[$surface] ) && is_array( $all[$surface] ) ? $all[$surface] : array() );
+        return array_merge( array( 'mode' => 'automatic', 'picks' => array(), 'exclude' => array(), 'artist_cap' => 'latest_tracks' === $surface ? 2 : 0, 'release_cap' => 'latest_tracks' === $surface ? 1 : 0, 'override' => false, 'weights' => array(), 'rotation' => array() ), isset( $all[$surface] ) && is_array( $all[$surface] ) ? $all[$surface] : array() );
     }
     public static function types( $surface ) {
         if ( 'tv' === $surface ) { return array( 'nfinite_video', 'nfinite_episode', 'nfinite_show', 'nfinite_creator' ); }
@@ -76,26 +76,59 @@ final class Nfinite_Creators_Programming {
         }
         return $out;
     }
-    /** Radio selections ignore the Latest Tracks checkbox. Exclusions always win. */
+    /** Radio selections ignore Latest Tracks. Rotation tiers control real station frequency. */
     public static function radio( $queue ) {
-        $rule = self::rule( 'radio' ); $map = array();
+        $rule = self::rule( 'radio' ); $map = array(); $url_seen = array();
         foreach ( $queue as $item ) {
-            $id = absint( $item['id'] ?? 0 );
-            if ( self::public_item( $id ) && ! in_array( $id, $rule['exclude'], true ) ) { $map[$id] = $item; }
+            $id = absint( $item['id'] ?? 0 ); $url = strtolower( $item['sourceUrl'] ?? '' );
+            if ( ! $id || isset( $url_seen[$url] ) || ! self::public_item( $id ) || in_array( $id, $rule['exclude'], true ) ) { continue; }
+            $url_seen[$url] = true; $map[$id] = $item;
         }
-        $picked = array();
+        $eligible = array();
         if ( 'automatic' !== $rule['mode'] ) {
-            foreach ( $rule['picks'] as $id ) { if ( isset( $map[$id] ) ) { $picked[] = $map[$id]; unset( $map[$id] ); } }
+            foreach ( $rule['picks'] as $id ) { if ( isset( $map[$id] ) ) { $eligible[$id] = $map[$id]; } }
         }
-        $rest = 'handpicked' === $rule['mode'] ? array() : array_values( $map );
-        shuffle( $rest );
-        $unique = array(); $seen = array();
-        foreach ( array_merge( $picked, $rest ) as $item ) {
-            $url = strtolower( $item['sourceUrl'] ?? '' );
-            if ( isset( $seen[$url] ) ) { continue; }
-            $seen[$url] = true; $unique[] = $item;
+        if ( 'handpicked' !== $rule['mode'] ) {
+            foreach ( $map as $id => $item ) { $eligible[$id] = $item; }
         }
-        return self::space_artists( $unique );
+        if ( ! $eligible ) { return array(); }
+
+        $tier_weights = array( 'heavy' => 10, 'medium' => 5, 'light' => 2, 'discovery' => 1 );
+        $pool = array();
+        foreach ( $eligible as $id => $item ) {
+            $tier = sanitize_key( $rule['rotation'][$id] ?? ( in_array( $id, $rule['picks'], true ) ? 'medium' : 'light' ) );
+            if ( 'disabled' === $tier ) { continue; }
+            $weight = absint( $rule['weights'][$id] ?? ( $tier_weights[$tier] ?? 2 ) );
+            $weight = max( 1, min( 25, $weight ) );
+            $item['radioRotation'] = $tier; $item['radioWeight'] = $weight;
+            $pool[$id] = $item;
+        }
+        if ( ! $pool ) { return array(); }
+
+        // Build a bounded weighted station cycle. Sampling with replacement makes
+        // Heavy records recur more often than Light/Discovery while artist spacing
+        // prevents avoidable back-to-back plays.
+        $target = min( 240, max( 50, count( $pool ) * 4 ) ); $weighted = array();
+        $last_artist = '';
+        for ( $n = 0; $n < $target; $n++ ) {
+            $choices = $pool;
+            if ( count( $choices ) > 1 && $last_artist ) {
+                $spaced = array_filter( $choices, static function( $item ) use ( $last_artist ) {
+                    $artist = ! empty( $item['creatorId'] ) ? 'id:' . absint( $item['creatorId'] ) : 'name:' . strtolower( trim( $item['artist'] ?? '' ) );
+                    return $artist !== $last_artist;
+                } );
+                if ( $spaced ) { $choices = $spaced; }
+            }
+            $total = array_sum( array_map( static function( $item ) { return max( 1, absint( $item['radioWeight'] ?? 1 ) ); }, $choices ) );
+            $roll = wp_rand( 1, max( 1, $total ) ); $chosen = reset( $choices );
+            foreach ( $choices as $item ) {
+                $roll -= max( 1, absint( $item['radioWeight'] ?? 1 ) );
+                if ( $roll <= 0 ) { $chosen = $item; break; }
+            }
+            $weighted[] = $chosen;
+            $last_artist = ! empty( $chosen['creatorId'] ) ? 'id:' . absint( $chosen['creatorId'] ) : 'name:' . strtolower( trim( $chosen['artist'] ?? '' ) );
+        }
+        return $weighted;
     }
     public static function space_artists( $queue ) {
         $out = array(); $last = null;
@@ -134,7 +167,12 @@ final class Nfinite_Creators_Programming {
         if ( ! is_array( $input ) ) { wp_die( 'Invalid selections. No changes were saved.' ); }
         $mode = sanitize_key( $_POST['mode'] ?? '' );
         $rule = array( 'mode' => in_array( $mode, array( 'automatic', 'handpicked', 'mixed' ), true ) ? $mode : 'automatic', 'picks' => self::ids( $input['picks'] ?? array(), $surface ), 'exclude' => self::ids( $input['exclude'] ?? array(), $surface ), 'artist_cap' => min( 50, absint( $_POST['artist_cap'] ?? 0 ) ), 'release_cap' => min( 50, absint( $_POST['release_cap'] ?? 0 ) ), 'override' => ! empty( $_POST['override'] ) );
-        $all = get_option( self::OPTION, array() ); $all[$surface] = $rule;
+        $all = get_option( self::OPTION, array() );
+        if ( 'radio' === $surface && isset( $all['radio'] ) && is_array( $all['radio'] ) ) {
+            $rule['rotation'] = $all['radio']['rotation'] ?? array();
+            $rule['weights'] = $all['radio']['weights'] ?? array();
+        }
+        $all[$surface] = $rule;
         update_option( self::OPTION, $all, false );
         wp_safe_redirect( add_query_arg( array( 'page' => 'nfinite-programming', 'surface' => $surface, 'saved' => 1 ), admin_url( 'admin.php' ) ) ); exit;
     }
