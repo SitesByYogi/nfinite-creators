@@ -39,8 +39,47 @@ while ( have_posts() ) :
                 </div>
             </section>
 
+            <?php
+            $other_releases = $creator_id ? get_posts( array(
+                'post_type'      => 'nfinite_release',
+                'post_status'    => 'publish',
+                'posts_per_page' => 4,
+                'post__not_in'   => array( $release_id ),
+                'meta_query'     => array( array(
+                    'key'     => '_nfinite_release_creator_id',
+                    'value'   => $creator_id,
+                    'compare' => '=',
+                    'type'    => 'NUMERIC',
+                ) ),
+                'orderby' => 'date',
+                'order'   => 'DESC',
+            ) ) : array();
+            ?>
             <?php if ( ! $is_external ) : ?>
                 <?php echo Nfinite_Creators_Music_Player::render_release_player( $release_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php endif; ?>
+            <?php if ( $other_releases ) : ?>
+                <section class="nfinite-more-releases" aria-labelledby="nfinite-more-releases-title">
+                    <div class="nfinite-more-releases__heading">
+                        <h2 id="nfinite-more-releases-title"><?php echo esc_html( sprintf( __( 'More From %s', 'nfinite-creators' ), get_the_title( $creator_id ) ) ); ?></h2>
+                        <a href="<?php echo esc_url( get_permalink( $creator_id ) ); ?>"><?php esc_html_e( 'View All Releases', 'nfinite-creators' ); ?> <span aria-hidden="true">↗</span></a>
+                    </div>
+                    <div class="nfinite-more-releases__rail">
+                        <?php foreach ( $other_releases as $other ) : ?>
+                            <a class="nfinite-more-releases__card" href="<?php echo esc_url( get_permalink( $other->ID ) ); ?>">
+                                <span class="nfinite-more-releases__cover">
+                                    <?php if ( has_post_thumbnail( $other->ID ) ) : ?>
+                                        <?php echo get_the_post_thumbnail( $other->ID, 'medium_large', array( 'loading' => 'lazy' ) ); ?>
+                                    <?php else : ?>
+                                        <span class="nfinite-more-releases__placeholder" aria-hidden="true">♫</span>
+                                    <?php endif; ?>
+                                </span>
+                                <strong><?php echo esc_html( get_the_title( $other->ID ) ); ?></strong>
+                                <span class="nfinite-more-releases__meta"><?php echo esc_html( Nfinite_Creators_Music_Query::release_type_label( $other->ID ) ); ?><?php $other_date = get_post_meta( $other->ID, '_nfinite_release_date', true ); if ( $other_date && strtotime( $other_date ) ) : ?> · <?php echo esc_html( wp_date( 'Y', strtotime( $other_date ) ) ); ?><?php endif; ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
             <?php endif; ?>
         </div>
     </main>
