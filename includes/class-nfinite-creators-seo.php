@@ -26,6 +26,8 @@ class Nfinite_Creators_SEO {
 		add_filter( 'wpseo_schema_webpage_type', array( __CLASS__, 'yoast_webpage_type' ), 99 );
 		add_filter( 'wpseo_opengraph_image', array( __CLASS__, 'yoast_social_image' ), 99 );
 		add_filter( 'wpseo_twitter_image', array( __CLASS__, 'yoast_social_image' ), 99 );
+		add_filter( 'wpseo_opengraph_image', array( __CLASS__, 'singular_social_image' ), 100 );
+		add_filter( 'wpseo_twitter_image', array( __CLASS__, 'singular_social_image' ), 100 );
 
 		// Fallback metadata for sites without a dedicated SEO plugin.
 		add_action( 'wp_head', array( __CLASS__, 'fallback_meta' ), 2 );
@@ -222,6 +224,32 @@ class Nfinite_Creators_SEO {
 		if ( ! self::current() ) { return $image; }
 		$fallback = self::social_image_url();
 		return $image ?: $fallback;
+	}
+
+	/** Use canonical artwork on music and creator links, without overriding editor-selected Yoast images. */
+	private static function singular_artwork() {
+		if ( ! is_singular( array( 'nfinite_release', 'nfinite_creator', 'nfinite_track' ) ) ) { return ''; }
+		$id = get_queried_object_id();
+		if ( ! $id ) { return ''; }
+		$image = get_the_post_thumbnail_url( $id, 'full' );
+		if ( $image ) { return $image; }
+		if ( 'nfinite_track' === get_post_type( $id ) ) {
+			$release = absint( get_post_meta( $id, '_nfinite_track_release_id', true ) );
+			if ( $release ) { $image = get_the_post_thumbnail_url( $release, 'full' ); }
+		}
+		return $image ? $image : '';
+	}
+
+	public static function singular_social_image( $image ) {
+		if ( ! is_singular( array( 'nfinite_release', 'nfinite_creator', 'nfinite_track' ) ) ) { return $image; }
+		$id = get_queried_object_id();
+		// Preserve manually chosen social artwork in Yoast, if any.
+		$custom = get_post_meta( $id, '_yoast_wpseo_opengraph-image', true );
+		$custom_id = absint( get_post_meta( $id, '_yoast_wpseo_opengraph-image-id', true ) );
+		if ( $custom_id ) { $custom = wp_get_attachment_image_url( $custom_id, 'full' ) ?: $custom; }
+		if ( $custom ) { return esc_url_raw( $custom ); }
+		$art = self::singular_artwork();
+		return $art ? esc_url_raw( $art ) : $image;
 	}
 
 	private static function has_seo_plugin() {
