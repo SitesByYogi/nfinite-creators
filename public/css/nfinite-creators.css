@@ -4015,3 +4015,18 @@ body.nfinite-videos-route .nfinite-discovery-creators .nfinite-creators-grid {
 .nfinite-open-player{display:inline-flex;align-items:center;gap:.55rem;margin:1rem 0;padding:.8rem 1.15rem;border-radius:999px;background:#f2c94c;color:#151515!important;font-weight:800;text-decoration:none!important;line-height:1.25;transition:transform .18s ease,filter .18s ease}
 .nfinite-open-player:hover,.nfinite-open-player:focus-visible{transform:translateY(-2px);filter:brightness(1.08)}
 .nfinite-open-player:focus-visible{outline:3px solid #fff;outline-offset:3px}
+
+/* Other releases from this artist on a single release page. */
+.nfinite-more-releases{margin:2.5rem 0 3rem}
+.nfinite-more-releases__heading{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.25rem}
+.nfinite-more-releases__heading h2{margin:0;font-size:clamp(1.3rem,2.5vw,1.9rem)}
+.nfinite-more-releases__heading a{color:inherit;text-decoration:underline;text-underline-offset:4px;font-size:.9rem}
+.nfinite-more-releases__rail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.15rem}
+.nfinite-more-releases__card{min-width:0;display:flex;flex-direction:column;gap:.4rem;color:inherit!important;text-decoration:none!important}
+.nfinite-more-releases__cover{display:block;aspect-ratio:1;background:#222;border-radius:12px;overflow:hidden}
+.nfinite-more-releases__cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s ease}
+.nfinite-more-releases__card:hover img{transform:scale(1.035)}
+.nfinite-more-releases__card strong{font-size:1rem;line-height:1.3}
+.nfinite-more-releases__meta{font-size:.85rem;opacity:.7}
+.nfinite-more-releases__placeholder{display:grid;place-items:center;width:100%;height:100%;font-size:3rem;opacity:.45}
+@media(max-width:700px){.nfinite-more-releases__rail{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:.9rem;padding-bottom:.75rem}.nfinite-more-releases__card{flex:0 0 min(60vw,220px);scroll-snap-align:start}.nfinite-more-releases__heading{align-items:baseline}.nfinite-more-releases__heading a{white-space:nowrap}}
