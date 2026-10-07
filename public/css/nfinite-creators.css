@@ -4010,3 +4010,8 @@ body.nfinite-videos-route .nfinite-discovery-creators .nfinite-creators-grid {
 }
 
 
+
+/* Contextual link to the dedicated PairOfDice listening experience. */
+.nfinite-open-player{display:inline-flex;align-items:center;gap:.55rem;margin:1rem 0;padding:.8rem 1.15rem;border-radius:999px;background:#f2c94c;color:#151515!important;font-weight:800;text-decoration:none!important;line-height:1.25;transition:transform .18s ease,filter .18s ease}
+.nfinite-open-player:hover,.nfinite-open-player:focus-visible{transform:translateY(-2px);filter:brightness(1.08)}
+.nfinite-open-player:focus-visible{outline:3px solid #fff;outline-offset:3px}

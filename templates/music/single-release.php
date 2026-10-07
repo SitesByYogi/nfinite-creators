@@ -32,6 +32,7 @@ while ( have_posts() ) :
                         <?php if ( $date ) : ?> · <?php echo esc_html( wp_date( 'F j, Y', strtotime( $date ) ) ); ?><?php endif; ?>
                     </p>
                     <div class="nfinite-release-description"><?php the_content(); ?></div>
+                    <a class="nfinite-open-player" href="<?php echo esc_url( home_url( '/?pairofdice_player=1#release/' . $release_id ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Open %s in PairOfDice Player', 'nfinite-creators' ), get_the_title() ) ); ?>">▶ <?php esc_html_e( 'Open in PairOfDice Player', 'nfinite-creators' ); ?> <span aria-hidden="true">↗</span></a>
                     <?php if ( $is_external ) : ?>
                         <?php echo Nfinite_Creators_Music_Player::render_external_release( $release_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     <?php endif; ?>

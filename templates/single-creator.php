@@ -59,6 +59,7 @@ while ( have_posts() ) :
 					<?php if ( $tagline ) : ?><p class="nfinite-creator-tagline"><?php echo esc_html( $tagline ); ?></p><?php endif; ?>
 					<?php if ( $location ) : ?><p class="nfinite-creator-location"><?php echo esc_html( $location ); ?></p><?php endif; ?>
 
+					<a class="nfinite-open-player" href="<?php echo esc_url( home_url( '/?pairofdice_player=1#creator/' . $creator_id ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Open %s in PairOfDice Player', 'nfinite-creators' ), get_the_title() ) ); ?>">▶ <?php esc_html_e( 'Open in PairOfDice Player', 'nfinite-creators' ); ?> <span aria-hidden="true">↗</span></a>
 					<div class="nfinite-creator-links">
 						<?php foreach ( $links as $label => $url ) : if ( ! $url ) { continue; } ?>
 							<a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $label ); ?></a>
