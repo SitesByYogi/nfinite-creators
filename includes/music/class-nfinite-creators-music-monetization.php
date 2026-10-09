@@ -270,6 +270,9 @@ class Nfinite_Creators_Music_Monetization {
 		$current = self::normalize_status( get_post_meta( $post_id, '_nfinite_track_monetization_status', true ) );
 		if ( current_user_can( 'manage_options' ) && isset( $_POST['_nfinite_track_monetization_status'] ) ) {
 			$new_status = self::normalize_status( wp_unslash( $_POST['_nfinite_track_monetization_status'] ) );
+			if ( 'not_enrolled' === $new_status && isset( $_POST['_nfinite_track_request_monetization'], $_POST['_nfinite_track_rights_confirmed'], $_POST['_nfinite_track_monetization_terms'] ) && get_post_meta( $post_id, '_nfinite_track_master_owner', true ) ) {
+				$new_status = 'pending_review';
+			}
 			if ( 'monetized' === $new_status && ( ! get_post_meta( $post_id, '_nfinite_track_rights_confirmed', true ) || ! get_post_meta( $post_id, '_nfinite_track_monetization_terms', true ) || ! get_post_meta( $post_id, '_nfinite_track_master_owner', true ) ) ) {
 				$new_status = 'pending_review';
 			}
