@@ -16,6 +16,7 @@ class Nfinite_Creators_Music_Monetization {
 		add_action( 'add_meta_boxes_nfinite_creator', array( __CLASS__, 'add_creator_review_box' ) );
 		add_action( 'save_post_nfinite_track', array( __CLASS__, 'save_track' ), 30, 2 );
 		add_action( 'save_post_nfinite_release', array( __CLASS__, 'save_release' ), 30, 2 );
+		add_action( 'save_post_nfinite_release', array( __CLASS__, 'save_release_monetization' ), 40, 2 );
 		add_action( 'save_post_nfinite_creator', array( __CLASS__, 'save_creator_review' ), 30, 2 );
 		add_action( 'init', array( __CLASS__, 'register_rest_meta' ) );
 	}
@@ -132,6 +133,7 @@ class Nfinite_Creators_Music_Monetization {
 	}
 
 	public static function add_release_box() {
+		add_meta_box( 'nfinite_release_monetization', __( 'Monetize Entire Release', 'nfinite-creators' ), array( __CLASS__, 'render_release_monetization_box' ), 'nfinite_release', 'normal', 'high' );
 		add_meta_box(
 			'nfinite_release_distribution_metadata',
 			__( 'Rights & Distribution Metadata', 'nfinite-creators' ),
@@ -193,6 +195,85 @@ class Nfinite_Creators_Music_Monetization {
 			<?php endif; ?>
 		</div>
 		<?php
+	}
+
+	/** Only tracks belonging to this release; never bulk-edit unrelated catalog items. */
+	private static function release_track_ids( $release_id ) {
+		$ordered = get_post_meta( $release_id, '_nfinite_release_track_ids', true );
+		$ids = is_array( $ordered ) ? array_values( array_filter( array_map( 'absint', $ordered ) ) ) : array();
+		$related = get_posts( array( 'post_type'=>'nfinite_track', 'post_status'=>array('publish','draft','pending','private'),
+			'posts_per_page'=>-1, 'fields'=>'ids', 'meta_key'=>'_nfinite_track_release_id', 'meta_value'=>$release_id ) );
+		$ids = array_unique( array_merge( $ids, array_map( 'absint', $related ) ) );
+		return array_values( array_filter( $ids, function( $id ) use ( $release_id ) {
+			return 'nfinite_track' === get_post_type( $id ) && 'trash' !== get_post_status( $id )
+				&& ( absint( get_post_meta( $id, '_nfinite_track_release_id', true ) ) === $release_id );
+		} ) );
+	}
+
+	private static function release_monetization_counts( $ids ) {
+		$counts = array_fill_keys( array_keys( self::statuses() ), 0 );
+		foreach ( $ids as $id ) { $counts[ self::normalize_status( get_post_meta( $id, '_nfinite_track_monetization_status', true ) ) ]++; }
+		return $counts;
+	}
+
+	public static function render_release_monetization_box( $post ) {
+		wp_nonce_field( 'nfinite_release_monetization_save', 'nfinite_release_monetization_nonce' );
+		$ids = self::release_track_ids( $post->ID );
+		$counts = self::release_monetization_counts( $ids );
+		$creator_id = absint( get_post_meta( $post->ID, '_nfinite_release_creator_id', true ) );
+		$owner = (string) get_post_meta( $post->ID, '_nfinite_release_monetization_owner', true );
+		if ( ! $owner && $creator_id ) { $owner = get_the_title( $creator_id ); }
+		$requested = get_post_meta( $post->ID, '_nfinite_release_monetization_requested', true );
+		?>
+		<p><strong><?php echo esc_html( sprintf( __( '%d linked tracks', 'nfinite-creators' ), count($ids) ) ); ?></strong>
+			— <?php echo esc_html( sprintf( __( '%1$d monetized · %2$d pending · %3$d not enrolled · %4$d excluded', 'nfinite-creators' ), $counts['monetized'], $counts['pending_review'], $counts['not_enrolled'], $counts['ineligible'] + $counts['suspended'] ) ); ?></p>
+		<p><?php esc_html_e( 'Request review for the entire album, EP, mixtape, or single. Each linked track receives its own pending-review record; previously approved or excluded tracks are not overwritten.', 'nfinite-creators' ); ?></p>
+		<?php if ( ! $ids ) : ?><p class="notice notice-warning inline"><?php esc_html_e( 'Link tracks to this release before requesting monetization.', 'nfinite-creators' ); ?></p><?php endif; ?>
+		<p><label><strong><?php esc_html_e( 'Master rights holder', 'nfinite-creators' ); ?></strong><br><input class="widefat" type="text" name="nfinite_release_monetization_owner" value="<?php echo esc_attr( $owner ); ?>" placeholder="<?php esc_attr_e( 'Confirm the recording rights holder', 'nfinite-creators' ); ?>"></label></p>
+		<p><label><input type="checkbox" name="nfinite_release_rights_confirmed" value="1" <?php checked( get_post_meta( $post->ID, '_nfinite_release_rights_confirmed', true ), '1' ); ?>> <?php esc_html_e( 'I confirm I control the necessary recording rights for each included track, except any tracks excluded below.', 'nfinite-creators' ); ?></label></p>
+		<p><label><input type="checkbox" name="nfinite_release_terms_accepted" value="1" <?php checked( get_post_meta( $post->ID, '_nfinite_release_terms_accepted', true ), '1' ); ?>> <?php esc_html_e( 'I have accepted the applicable PairOfDice monetization agreement.', 'nfinite-creators' ); ?></label></p>
+		<?php if ( $ids ) : ?>
+		<details><summary><?php esc_html_e( 'Track exceptions — exclude tracks with different rights or unresolved samples', 'nfinite-creators' ); ?></summary>
+		<?php foreach ( $ids as $id ) : ?>
+		<p><label><input type="checkbox" name="nfinite_release_excluded_tracks[]" value="<?php echo esc_attr($id); ?>" <?php checked( in_array($id,(array)get_post_meta($post->ID,'_nfinite_release_monetization_exclusions',true),true) ); ?>> <?php echo esc_html( get_the_title($id) ); ?> — <?php echo esc_html( self::status_label( get_post_meta($id,'_nfinite_track_monetization_status',true) ) ); ?></label></p>
+		<?php endforeach; ?></details>
+		<?php endif; ?>
+		<p><label><input type="checkbox" name="nfinite_release_request_monetization" value="1"> <strong><?php esc_html_e( 'Request monetization for eligible tracks in this release', 'nfinite-creators' ); ?></strong></label></p>
+		<p class="description"><?php esc_html_e( 'Save/Update to submit. Requires rights confirmation, terms acceptance, and owner. Existing monetized, suspended, or ineligible tracks remain unchanged. Approval is separate; this does not generate retroactive earnings.', 'nfinite-creators' ); ?></p>
+		<?php if ($requested) : ?><p><em><?php esc_html_e( 'Last request:', 'nfinite-creators' ); ?> <?php echo esc_html($requested); ?></em></p><?php endif; ?>
+		<?php
+	}
+
+	public static function save_release_monetization( $post_id, $post ) {
+		if ( ! self::can_save( $post_id, 'nfinite_release_monetization_nonce', 'nfinite_release_monetization_save' ) ) { return; }
+		$ids = self::release_track_ids( $post_id );
+		$excluded = isset($_POST['nfinite_release_excluded_tracks']) && is_array($_POST['nfinite_release_excluded_tracks']) ? array_map('absint',wp_unslash($_POST['nfinite_release_excluded_tracks'])) : array();
+		$excluded = array_values(array_intersect($ids,$excluded));
+		update_post_meta($post_id,'_nfinite_release_monetization_exclusions',$excluded);
+		$owner = isset($_POST['nfinite_release_monetization_owner']) ? sanitize_text_field(wp_unslash($_POST['nfinite_release_monetization_owner'])) : '';
+		$rights = isset($_POST['nfinite_release_rights_confirmed']);
+		$terms = isset($_POST['nfinite_release_terms_accepted']);
+		update_post_meta($post_id,'_nfinite_release_monetization_owner',$owner);
+		update_post_meta($post_id,'_nfinite_release_rights_confirmed',$rights?'1':'');
+		update_post_meta($post_id,'_nfinite_release_terms_accepted',$terms?'1':'');
+		if ( ! isset($_POST['nfinite_release_request_monetization']) || ! $owner || ! $rights || ! $terms || ! $ids ) { return; }
+		$changed = 0;
+		foreach ($ids as $id) {
+			if ( in_array($id,$excluded,true) || ! current_user_can('edit_post',$id) ) { continue; }
+			$status = self::normalize_status(get_post_meta($id,'_nfinite_track_monetization_status',true));
+			if ( 'not_enrolled' !== $status && 'pending_review' !== $status ) { continue; }
+			$track_owner = (string) get_post_meta($id,'_nfinite_track_master_owner',true);
+			if ( $track_owner && strcasecmp(trim($track_owner),trim($owner)) !== 0 ) { continue; }
+			update_post_meta($id,'_nfinite_track_master_owner',$owner);
+			update_post_meta($id,'_nfinite_track_rights_confirmed','1');
+			update_post_meta($id,'_nfinite_track_monetization_terms','1');
+			update_post_meta($id,'_nfinite_track_monetization_terms_version',self::TERMS_VERSION);
+			update_post_meta($id,'_nfinite_track_monetization_status','pending_review');
+			update_post_meta($id,'_nfinite_track_monetization_requested_at',current_time('mysql'));
+			$changed++;
+		}
+		update_post_meta($post_id,'_nfinite_release_monetization_requested',current_time('mysql'));
+		update_post_meta($post_id,'_nfinite_release_monetization_last_count',$changed);
 	}
 
 	public static function render_release_box( $post ) {
