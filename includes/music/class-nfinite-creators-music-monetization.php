@@ -158,29 +158,38 @@ class Nfinite_Creators_Music_Monetization {
 	public static function render_track_box( $post ) {
 		wp_nonce_field( 'nfinite_track_monetization_save', 'nfinite_track_monetization_nonce' );
 		$status = self::normalize_status( get_post_meta( $post->ID, '_nfinite_track_monetization_status', true ) );
-		$fields = array(
-			'master_owner'     => get_post_meta( $post->ID, '_nfinite_track_master_owner', true ),
-			'primary_artist'   => get_post_meta( $post->ID, '_nfinite_track_primary_artist', true ),
-			'featured_artists' => get_post_meta( $post->ID, '_nfinite_track_featured_artists', true ),
-			'producers'        => get_post_meta( $post->ID, '_nfinite_track_producers', true ),
-			'songwriters'      => get_post_meta( $post->ID, '_nfinite_track_songwriters', true ),
-			'isrc'             => get_post_meta( $post->ID, '_nfinite_track_isrc', true ),
-		);
+		$fields = array();
+		foreach ( array( 'master_owner','primary_artist','featured_artists','producers','songwriters','isrc' ) as $key ) {
+			$fields[$key] = (string) get_post_meta( $post->ID, '_nfinite_track_' . $key, true );
+		}
+		$creator_id = absint( get_post_meta( $post->ID, '_nfinite_track_creator_id', true ) );
+		$creator_name = $creator_id ? get_the_title( $creator_id ) : '';
+		$artist = $fields['primary_artist'] ?: ( $creator_name ?: get_the_author_meta( 'display_name', $post->post_author ) );
+		$owner = $fields['master_owner'] ?: $artist;
 		?>
-		<p><strong><?php esc_html_e( 'Monetization status:', 'nfinite-creators' ); ?></strong> <?php echo esc_html( self::status_label( $status ) ); ?></p>
-		<div class="nfinite-admin-grid">
-			<?php foreach ( array( 'master_owner' => 'Master owner', 'primary_artist' => 'Primary artist', 'featured_artists' => 'Featured artists', 'producers' => 'Producer(s)', 'isrc' => 'ISRC' ) as $key => $label ) : ?>
-				<div class="nfinite-admin-field"><label><?php echo esc_html( $label ); ?></label><input class="widefat" type="text" name="_nfinite_track_<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $fields[ $key ] ); ?>"></div>
+		<div class="nfinite-monetization-v2" style="max-width:920px">
+			<h3><?php esc_html_e( 'Earn from qualified streams', 'nfinite-creators' ); ?></h3>
+			<p><?php esc_html_e( 'Request monetization for this track. Approval is required before streams can earn revenue.', 'nfinite-creators' ); ?></p>
+			<p><strong><?php esc_html_e( 'Current status:', 'nfinite-creators' ); ?></strong> <?php echo esc_html( self::status_label( $status ) ); ?></p>
+			<p><label><strong><?php esc_html_e( 'Master rights holder', 'nfinite-creators' ); ?></strong><br>
+			<input class="widefat" type="text" name="_nfinite_track_master_owner" value="<?php echo esc_attr( $owner ); ?>" placeholder="<?php esc_attr_e( 'Name of the person or company that controls this recording', 'nfinite-creators' ); ?>"></label>
+			<small><?php esc_html_e( 'Suggested from existing creator information. Confirm or correct before submitting.', 'nfinite-creators' ); ?></small></p>
+			<p><label><input type="checkbox" name="_nfinite_track_rights_confirmed" value="1" <?php checked( get_post_meta( $post->ID, '_nfinite_track_rights_confirmed', true ), '1' ); ?>> <?php esc_html_e( 'I confirm that I own or control the rights necessary to monetize this recording.', 'nfinite-creators' ); ?></label></p>
+			<p><label><input type="checkbox" name="_nfinite_track_monetization_terms" value="1" <?php checked( get_post_meta( $post->ID, '_nfinite_track_monetization_terms', true ), '1' ); ?>> <?php esc_html_e( 'I have accepted the applicable PairOfDice monetization agreement.', 'nfinite-creators' ); ?></label></p>
+			<p><label><input type="checkbox" name="_nfinite_track_request_monetization" value="1" <?php checked( 'pending_review', $status ); ?>> <strong><?php esc_html_e( 'Request monetization review', 'nfinite-creators' ); ?></strong></label></p>
+			<p class="description"><?php esc_html_e( 'Save or Update the track to submit. Missing confirmations leave the track unenrolled. No automatic approval or retroactive earnings are created.', 'nfinite-creators' ); ?></p>
+			<details style="margin:18px 0"><summary style="cursor:pointer;font-weight:600"><?php esc_html_e( 'Advanced music credits (optional)', 'nfinite-creators' ); ?></summary>
+			<div class="nfinite-admin-grid" style="margin-top:12px">
+			<?php foreach ( array( 'primary_artist'=>'Primary artist','featured_artists'=>'Featured artists','producers'=>'Producer(s)','isrc'=>'ISRC' ) as $key=>$label ) : ?>
+			<div class="nfinite-admin-field"><label><?php echo esc_html( $label ); ?></label><input class="widefat" type="text" name="_nfinite_track_<?php echo esc_attr($key); ?>" value="<?php echo esc_attr( 'primary_artist' === $key ? $artist : $fields[$key] ); ?>"></div>
 			<?php endforeach; ?>
-			<div class="nfinite-admin-field nfinite-admin-field--full"><label><?php esc_html_e( 'Songwriter / publishing credits', 'nfinite-creators' ); ?></label><textarea class="widefat" rows="3" name="_nfinite_track_songwriters"><?php echo esc_textarea( $fields['songwriters'] ); ?></textarea></div>
-			<div class="nfinite-admin-field nfinite-admin-field--full">
-				<label><input type="checkbox" name="_nfinite_track_rights_confirmed" value="1" <?php checked( get_post_meta( $post->ID, '_nfinite_track_rights_confirmed', true ), '1' ); ?>> <?php esc_html_e( 'Rights/control confirmed for PairOfDice monetization.', 'nfinite-creators' ); ?></label><br>
-				<label><input type="checkbox" name="_nfinite_track_monetization_terms" value="1" <?php checked( get_post_meta( $post->ID, '_nfinite_track_monetization_terms', true ), '1' ); ?>> <?php esc_html_e( 'Monetization terms accepted.', 'nfinite-creators' ); ?></label>
-				<p class="description"><?php esc_html_e( 'The production terms must be finalized and reviewed by music counsel before public monetization launch.', 'nfinite-creators' ); ?></p>
-			</div>
+			<div class="nfinite-admin-field nfinite-admin-field--full"><label><?php esc_html_e( 'Songwriter / publishing credits', 'nfinite-creators' ); ?></label><textarea class="widefat" rows="3" name="_nfinite_track_songwriters"><?php echo esc_textarea($fields['songwriters']); ?></textarea></div>
+			</div></details>
 			<?php if ( current_user_can( 'manage_options' ) ) : ?>
-				<div class="nfinite-admin-field"><label><?php esc_html_e( 'Admin status', 'nfinite-creators' ); ?></label><select class="widefat" name="_nfinite_track_monetization_status"><?php foreach ( self::statuses() as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $status, $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></div>
-				<div class="nfinite-admin-field"><label><?php esc_html_e( 'Review note', 'nfinite-creators' ); ?></label><textarea class="widefat" rows="2" name="_nfinite_track_monetization_review_note"><?php echo esc_textarea( get_post_meta( $post->ID, '_nfinite_track_monetization_review_note', true ) ); ?></textarea></div>
+			<details><summary style="cursor:pointer;font-weight:600"><?php esc_html_e( 'Administrator review', 'nfinite-creators' ); ?></summary>
+			<p><label><?php esc_html_e( 'Admin status', 'nfinite-creators' ); ?><select class="widefat" name="_nfinite_track_monetization_status"><?php foreach ( self::statuses() as $key=>$label ) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected($status,$key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label></p>
+			<p><label><?php esc_html_e( 'Review note', 'nfinite-creators' ); ?><textarea class="widefat" rows="2" name="_nfinite_track_monetization_review_note"><?php echo esc_textarea( get_post_meta($post->ID,'_nfinite_track_monetization_review_note',true) ); ?></textarea></label></p>
+			</details>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -261,11 +270,14 @@ class Nfinite_Creators_Music_Monetization {
 		$current = self::normalize_status( get_post_meta( $post_id, '_nfinite_track_monetization_status', true ) );
 		if ( current_user_can( 'manage_options' ) && isset( $_POST['_nfinite_track_monetization_status'] ) ) {
 			$new_status = self::normalize_status( wp_unslash( $_POST['_nfinite_track_monetization_status'] ) );
+			if ( 'monetized' === $new_status && ( ! get_post_meta( $post_id, '_nfinite_track_rights_confirmed', true ) || ! get_post_meta( $post_id, '_nfinite_track_monetization_terms', true ) || ! get_post_meta( $post_id, '_nfinite_track_master_owner', true ) ) ) {
+				$new_status = 'pending_review';
+			}
 			update_post_meta( $post_id, '_nfinite_track_monetization_status', $new_status );
 			update_post_meta( $post_id, '_nfinite_track_monetization_reviewed_at', current_time( 'mysql' ) );
 			update_post_meta( $post_id, '_nfinite_track_monetization_review_note', isset( $_POST['_nfinite_track_monetization_review_note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['_nfinite_track_monetization_review_note'] ) ) : '' );
 		} elseif ( ! in_array( $current, array( 'monetized', 'ineligible', 'suspended' ), true ) ) {
-			$ready = isset( $_POST['_nfinite_track_rights_confirmed'], $_POST['_nfinite_track_monetization_terms'] ) && ! empty( $_POST['_nfinite_track_master_owner'] );
+			$ready = isset( $_POST['_nfinite_track_request_monetization'], $_POST['_nfinite_track_rights_confirmed'], $_POST['_nfinite_track_monetization_terms'] ) && ! empty( trim( (string) ( $_POST['_nfinite_track_master_owner'] ?? '' ) ) );
 			update_post_meta( $post_id, '_nfinite_track_monetization_status', $ready ? 'pending_review' : 'not_enrolled' );
 		}
 	}
