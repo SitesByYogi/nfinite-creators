@@ -235,7 +235,7 @@ class Nfinite_Creators_Music_Monetization {
 		<?php if ( $ids ) : ?>
 		<details><summary><?php esc_html_e( 'Track exceptions — exclude tracks with different rights or unresolved samples', 'nfinite-creators' ); ?></summary>
 		<?php foreach ( $ids as $id ) : ?>
-		<p><label><input type="checkbox" name="nfinite_release_excluded_tracks[]" value="<?php echo esc_attr($id); ?>" <?php checked( in_array($id,(array)get_post_meta($post->ID,'_nfinite_release_monetization_exclusions',true),true) ); ?>> <?php echo esc_html( get_the_title($id) ); ?> — <?php echo esc_html( self::status_label( get_post_meta($id,'_nfinite_track_monetization_status',true) ) ); ?></label></p>
+		<p><label><input type="checkbox" name="nfinite_release_excluded_tracks[]" value="<?php echo esc_attr($id); ?>" <?php checked( in_array($id,array_map('absint',(array)get_post_meta($post->ID,'_nfinite_release_monetization_exclusions',true)),true) ); ?>> <?php echo esc_html( get_the_title($id) ); ?> — <?php echo esc_html( self::status_label( get_post_meta($id,'_nfinite_track_monetization_status',true) ) ); ?></label></p>
 		<?php endforeach; ?></details>
 		<?php endif; ?>
 		<p><label><input type="checkbox" name="nfinite_release_request_monetization" value="1"> <strong><?php esc_html_e( 'Request monetization for eligible tracks in this release', 'nfinite-creators' ); ?></strong></label></p>
