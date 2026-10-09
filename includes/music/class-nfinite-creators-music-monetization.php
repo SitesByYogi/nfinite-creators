@@ -239,6 +239,7 @@ class Nfinite_Creators_Music_Monetization {
 		<?php endforeach; ?></details>
 		<?php endif; ?>
 		<p><label><input type="checkbox" name="nfinite_release_request_monetization" value="1"> <strong><?php esc_html_e( 'Request monetization for eligible tracks in this release', 'nfinite-creators' ); ?></strong></label></p>
+		<?php if (current_user_can('manage_options')) : ?><p><label><input type="checkbox" name="nfinite_release_approve_monetization" value="1"> <strong><?php esc_html_e('Administrator: approve all eligible pending tracks in this release','nfinite-creators'); ?></strong></label><br><small><?php esc_html_e('Explicit review action. Only tracks with owner, rights confirmation, and accepted terms can be approved. Exclusions and existing holds are respected.','nfinite-creators'); ?></small></p><?php endif; ?>
 		<p class="description"><?php esc_html_e( 'Save/Update to submit. Requires rights confirmation, terms acceptance, and owner. Existing monetized, suspended, or ineligible tracks remain unchanged. Approval is separate; this does not generate retroactive earnings.', 'nfinite-creators' ); ?></p>
 		<?php if ($requested) : ?><p><em><?php esc_html_e( 'Last request:', 'nfinite-creators' ); ?> <?php echo esc_html($requested); ?></em></p><?php endif; ?>
 		<?php
@@ -256,7 +257,9 @@ class Nfinite_Creators_Music_Monetization {
 		update_post_meta($post_id,'_nfinite_release_monetization_owner',$owner);
 		update_post_meta($post_id,'_nfinite_release_rights_confirmed',$rights?'1':'');
 		update_post_meta($post_id,'_nfinite_release_terms_accepted',$terms?'1':'');
-		if ( ! isset($_POST['nfinite_release_request_monetization']) || ! $owner || ! $rights || ! $terms || ! $ids ) { return; }
+		$approve = current_user_can('manage_options') && isset($_POST['nfinite_release_approve_monetization']);
+		$request = isset($_POST['nfinite_release_request_monetization']);
+		if ( (!$request && !$approve) || ! $owner || ! $rights || ! $terms || ! $ids ) { return; }
 		$changed = 0;
 		foreach ($ids as $id) {
 			if ( in_array($id,$excluded,true) || ! current_user_can('edit_post',$id) ) { continue; }
@@ -268,11 +271,12 @@ class Nfinite_Creators_Music_Monetization {
 			update_post_meta($id,'_nfinite_track_rights_confirmed','1');
 			update_post_meta($id,'_nfinite_track_monetization_terms','1');
 			update_post_meta($id,'_nfinite_track_monetization_terms_version',self::TERMS_VERSION);
-			update_post_meta($id,'_nfinite_track_monetization_status','pending_review');
+			update_post_meta($id,'_nfinite_track_monetization_status',$approve ? 'monetized' : 'pending_review');
+			if ($approve) { update_post_meta($id,'_nfinite_track_monetization_reviewed_at',current_time('mysql')); }
 			update_post_meta($id,'_nfinite_track_monetization_requested_at',current_time('mysql'));
 			$changed++;
 		}
-		update_post_meta($post_id,'_nfinite_release_monetization_requested',current_time('mysql'));
+		update_post_meta($post_id,$approve ? '_nfinite_release_monetization_approved' : '_nfinite_release_monetization_requested',current_time('mysql'));
 		update_post_meta($post_id,'_nfinite_release_monetization_last_count',$changed);
 	}
 
