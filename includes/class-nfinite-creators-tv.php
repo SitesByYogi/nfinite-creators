@@ -145,6 +145,11 @@ class Nfinite_Creators_TV {
 			'publishedAt' => absint( $item['published_at'] ?? 0 ),
 			'showId'      => absint( $item['show_id'] ?? 0 ),
 			'showTitle'   => sanitize_text_field( $item['show_title'] ?? '' ),
+			'season'      => max( 1, absint( $item['season'] ?? 1 ) ),
+			'episodeNumber' => absint( $item['episode_number'] ?? 0 ),
+			'editorialSynopsis' => sanitize_textarea_field( $item['editorial_synopsis'] ?? '' ),
+			'sourceName'  => sanitize_text_field( $item['source_name'] ?? '' ),
+			'sourceUrl'   => esc_url_raw( $item['source_url'] ?? '' ),
 		);
 	}
 
@@ -340,6 +345,11 @@ class Nfinite_Creators_TV {
 					'published_at'   => get_post_time( 'U', true, $episode ),
 					'show_id'        => $show_id,
 					'show_title'     => $show_title,
+					'season'         => max( 1, absint( get_post_meta( $episode->ID, '_nfinite_episode_season', true ) ) ),
+					'episode_number' => absint( get_post_meta( $episode->ID, '_nfinite_episode_number', true ) ),
+					'editorial_synopsis' => get_post_meta( $episode->ID, '_nfinite_episode_editorial_synopsis', true ),
+					'source_name'    => get_post_meta( $episode->ID, '_nfinite_episode_source_name', true ),
+					'source_url'     => get_post_meta( $episode->ID, '_nfinite_episode_source_url', true ),
 				);
 			}
 		}
